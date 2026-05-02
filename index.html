@@ -9,78 +9,178 @@ body{font-family:system-ui,Arial;margin:0;background:#f3f6fb;color:#182033}
 header{background:#182033;color:white;padding:24px;text-align:center}
 main{max-width:900px;margin:auto;padding:20px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
-button,.card{border:0;border-radius:18px;padding:18px;font-size:18px;box-shadow:0 6px 18px #0002;background:white;cursor:pointer}
+button,.card{border:0;border-radius:18px;padding:16px;font-size:18px;box-shadow:0 6px 18px #0002;background:white;cursor:pointer;margin:6px}
 button:hover{transform:scale(1.02)}
-#game{margin-top:20px;background:white;border-radius:22px;padding:20px;box-shadow:0 6px 18px #0002}
+#game,#ranking{margin-top:20px;background:white;border-radius:22px;padding:20px;box-shadow:0 6px 18px #0002}
 .big{font-size:42px;font-weight:800;text-align:center;margin:20px}
 .opt{display:block;width:100%;margin:10px 0}
 input{font-size:20px;padding:12px;border-radius:12px;border:1px solid #ccd;width:calc(100% - 28px)}
+.timer{font-size:26px;font-weight:800;color:#b00020}
+table{width:100%;border-collapse:collapse}
+td,th{padding:10px;border-bottom:1px solid #ddd;text-align:left}
 </style>
 </head>
 <body>
-<header><h1>Juegos Cognitivos</h1><p>Escoge un juego para entrenar memoria, atención, lógica y cálculo.</p></header>
+<header>
+<h1>Juegos Cognitivos</h1>
+<p>Varios jugadores, cronómetro, puntajes y ranking final.</p>
+</header>
+
 <main>
-<div class="grid">
-<button onclick="memoria()">🧠 Memoria</button>
-<button onclick="atencion()">🎯 Atención</button>
-<button onclick="logica()">🧩 Lógica</button>
-<button onclick="calculo()">🔢 Cálculo mental</button>
-</div>
-<section id="game"><h2>Elige un juego para comenzar</h2></section>
+<section id="game">
+<h2>Configurar partida</h2>
+<p>Escribe los nombres separados por coma:</p>
+<input id="nombres" placeholder="Ejemplo: Ana, Juan, María">
+<p>Tiempo por jugador:</p>
+<select id="tiempo" style="font-size:18px;padding:10px;border-radius:12px">
+<option value="30">30 segundos</option>
+<option value="45">45 segundos</option>
+<option value="60">60 segundos</option>
+</select>
+<br><br>
+<button onclick="iniciarPartida()">Iniciar partida</button>
+</section>
+
+<section id="ranking" style="display:none"></section>
 </main>
+
 <script>
-let puntos=0, ronda=0, sec="";
+let jugadores=[], turno=0, puntos=0, tiempoTotal=30, tiempoRestante=30, reloj=null;
+let sec="", respuestaActual=0;
+
+function iniciarPartida(){
+  let texto=document.getElementById("nombres").value.trim();
+  if(!texto){alert("Escribe al menos un jugador");return;}
+  jugadores=texto.split(",").map(n=>({nombre:n.trim(), puntos:0})).filter(j=>j.nombre);
+  tiempoTotal=Number(document.getElementById("tiempo").value);
+  turno=0;
+  mostrarTurno();
+}
+
+function mostrarTurno(){
+  if(turno>=jugadores.length){mostrarRanking();return;}
+  puntos=0;
+  tiempoRestante=tiempoTotal;
+  g("<h2>Turno de: "+jugadores[turno].nombre+"</h2>"+
+    "<p class='timer'>⏱ Tiempo: <span id='t'>"+tiempoRestante+"</span>s</p>"+
+    "<p>Puntos: <span id='p'>0</span></p>"+
+    "<div class='grid'>"+
+    "<button onclick='empezar(\"memoria\")'>🧠 Memoria</button>"+
+    "<button onclick='empezar(\"atencion\")'>🎯 Atención</button>"+
+    "<button onclick='empezar(\"logica\")'>🧩 Lógica</button>"+
+    "<button onclick='empezar(\"calculo\")'>🔢 Cálculo mental</button>"+
+    "</div>");
+}
+
+function empezar(juego){
+  iniciarReloj();
+  if(juego==="memoria") memoria();
+  if(juego==="atencion") atencion();
+  if(juego==="logica") logica();
+  if(juego==="calculo") calculo();
+}
+
+function iniciarReloj(){
+  clearInterval(reloj);
+  reloj=setInterval(()=>{
+    tiempoRestante--;
+    let t=document.getElementById("t");
+    if(t)t.textContent=tiempoRestante;
+    if(tiempoRestante<=0) terminarTurno();
+  },1000);
+}
+
+function terminarTurno(){
+  clearInterval(reloj);
+  jugadores[turno].puntos=puntos;
+  g("<h2>Tiempo terminado</h2>"+
+    "<p>"+jugadores[turno].nombre+" hizo <b>"+puntos+"</b> puntos.</p>"+
+    "<button onclick='turno++; mostrarTurno()'>Siguiente jugador</button>");
+}
+
+function sumar(){
+  puntos++;
+  let p=document.getElementById("p");
+  if(p)p.textContent=puntos;
+}
+
 function g(x){document.getElementById("game").innerHTML=x}
-function menu(t){g("<h2>"+t+"</h2><p>Puntos: "+puntos+" | Ronda: "+ronda+"</p>")}
+
+function barra(titulo){
+  return "<h2>"+titulo+"</h2><p class='timer'>⏱ Tiempo: <span id='t'>"+tiempoRestante+"</span>s</p><p>Puntos: <span id='p'>"+puntos+"</span></p>";
+}
+
+/* JUEGO MEMORIA */
 function memoria(){
-puntos=0;ronda=0;sec="";
-sigMem();
+  sec="";
+  siguienteMemoria();
 }
-function sigMem(){
-ronda++; sec += Math.floor(Math.random()*9)+1;
-menu("Memoria"); g(document.getElementById("game").innerHTML+"<p>Mira la secuencia:</p><div class='big'>"+sec+"</div>");
-setTimeout(()=>g("<h2>Memoria</h2><p>Escribe la secuencia que viste:</p><input id='r'><button class='opt' onclick='revMem()'>Responder</button>"),1300+sec.length*250);
+function siguienteMemoria(){
+  sec += Math.floor(Math.random()*9)+1;
+  g(barra("🧠 Memoria")+"<p>Mira la secuencia:</p><div class='big'>"+sec+"</div>");
+  setTimeout(()=>{
+    if(tiempoRestante<=0)return;
+    g(barra("🧠 Memoria")+"<p>Escribe la secuencia:</p><input id='r'><button class='opt' onclick='revisarMemoria()'>Responder</button>");
+  },900+sec.length*150);
 }
-function revMem(){
-let r=document.getElementById("r").value.trim();
-if(r==sec){puntos++; sigMem()} else g("<h2>Fin</h2><p>Tu puntaje fue "+puntos+".</p><button onclick='memoria()'>Jugar otra vez</button>");
+function revisarMemoria(){
+  let r=document.getElementById("r").value.trim();
+  if(r===sec){sumar(); siguienteMemoria();}
+  else terminarTurno();
 }
-function atencion(){
-puntos=0;ronda=0;sigAte();
+
+/* JUEGO ATENCION */
+function atencion(){ siguienteAtencion(); }
+function siguienteAtencion(){
+  let colores=["rojo","azul","verde","amarillo"];
+  let css=["red","blue","green","gold"];
+  let palabra=Math.floor(Math.random()*4), color=Math.floor(Math.random()*4);
+  g(barra("🎯 Atención")+"<p>Haz clic en el COLOR de la palabra, no en lo que dice.</p>"+
+  "<div class='big' style='color:"+css[color]+"'>"+colores[palabra].toUpperCase()+"</div>"+
+  colores.map((c,i)=>"<button class='opt' onclick='revisarAtencion("+i+","+color+")'>"+c+"</button>").join(""));
 }
-function sigAte(){
-ronda++;
-let colores=["rojo","azul","verde","amarillo"], css=["red","blue","green","gold"];
-let palabra=colores[Math.floor(Math.random()*4)], correcto=Math.floor(Math.random()*4);
-g("<h2>Atención</h2><p>Haz clic en el COLOR de la palabra, no en lo que dice.</p><p>Puntos: "+puntos+"</p><div class='big' style='color:"+css[correcto]+"'>"+palabra.toUpperCase()+"</div>"+colores.map((c,i)=>"<button class='opt' onclick='revAte("+i+","+correcto+")'>"+c+"</button>").join(""));
+function revisarAtencion(i,c){
+  if(i===c){sumar(); siguienteAtencion();}
+  else terminarTurno();
 }
-function revAte(i,c){
-if(i==c){puntos++;sigAte()} else g("<h2>Fin</h2><p>Tu puntaje fue "+puntos+".</p><button onclick='atencion()'>Jugar otra vez</button>");
+
+/* JUEGO LOGICA */
+function logica(){ siguienteLogica(); }
+function siguienteLogica(){
+  let a=Math.floor(Math.random()*5)+2,d=Math.floor(Math.random()*6)+2;
+  let serie=[a,a+d,a+2*d,a+3*d], resp=a+4*d;
+  let opciones=[resp,resp+d,resp-d,resp+2].sort(()=>Math.random()-.5);
+  g(barra("🧩 Lógica")+"<p>Completa la serie:</p><div class='big'>"+serie.join(", ")+", ?</div>"+
+  opciones.map(o=>"<button class='opt' onclick='revisarLogica("+o+","+resp+")'>"+o+"</button>").join(""));
 }
-function logica(){
-puntos=0;ronda=0;sigLog();
+function revisarLogica(o,r){
+  if(o===r){sumar(); siguienteLogica();}
+  else terminarTurno();
 }
-function sigLog(){
-ronda++;
-let a=Math.floor(Math.random()*5)+2,d=Math.floor(Math.random()*6)+2;
-let serie=[a,a+d,a+2*d,a+3*d], resp=a+4*d;
-let opciones=[resp,resp+d,resp-d,resp+2].sort(()=>Math.random()-.5);
-g("<h2>Lógica</h2><p>Completa la serie.</p><p>Puntos: "+puntos+"</p><div class='big'>"+serie.join(", ")+", ?</div>"+opciones.map(o=>"<button class='opt' onclick='revLog("+o+","+resp+")'>"+o+"</button>").join(""));
+
+/* JUEGO CALCULO */
+function calculo(){ siguienteCalculo(); }
+function siguienteCalculo(){
+  let a=Math.floor(Math.random()*20)+1,b=Math.floor(Math.random()*20)+1;
+  let op=Math.random()<.5?"+":"-";
+  respuestaActual=op==="+"?a+b:a-b;
+  g(barra("🔢 Cálculo mental")+"<div class='big'>"+a+" "+op+" "+b+" = ?</div>"+
+  "<input id='r' type='number'><button class='opt' onclick='revisarCalculo()'>Responder</button>");
 }
-function revLog(o,r){
-if(o==r){puntos++;sigLog()} else g("<h2>Fin</h2><p>Tu puntaje fue "+puntos+".</p><button onclick='logica()'>Jugar otra vez</button>");
+function revisarCalculo(){
+  let v=Number(document.getElementById("r").value);
+  if(v===respuestaActual){sumar(); siguienteCalculo();}
+  else terminarTurno();
 }
-function calculo(){
-puntos=0;ronda=0;sigCal();
-}
-function sigCal(){
-ronda++;
-let a=Math.floor(Math.random()*20)+1,b=Math.floor(Math.random()*20)+1,op=Math.random()<.5?"+":"-", resp=op=="+"?a+b:a-b;
-g("<h2>Cálculo mental</h2><p>Resuelve rápido.</p><p>Puntos: "+puntos+"</p><div class='big'>"+a+" "+op+" "+b+" = ?</div><input id='r' type='number'><button class='opt' onclick='revCal("+resp+")'>Responder</button>");
-}
-function revCal(r){
-let v=Number(document.getElementById("r").value);
-if(v==r){puntos++;sigCal()} else g("<h2>Fin</h2><p>Tu puntaje fue "+puntos+".</p><button onclick='calculo()'>Jugar otra vez</button>");
+
+/* RANKING */
+function mostrarRanking(){
+  jugadores.sort((a,b)=>b.puntos-a.puntos);
+  let filas=jugadores.map((j,i)=>"<tr><td>"+(i+1)+"</td><td>"+j.nombre+"</td><td>"+j.puntos+"</td></tr>").join("");
+  let ganador=jugadores[0];
+  document.getElementById("game").innerHTML="<h2>🏆 Ganador: "+ganador.nombre+"</h2><p>Puntaje: "+ganador.puntos+"</p><button onclick='location.reload()'>Nueva partida</button>";
+  document.getElementById("ranking").style.display="block";
+  document.getElementById("ranking").innerHTML="<h2>📊 Ranking final</h2><table><tr><th>Puesto</th><th>Jugador</th><th>Puntos</th></tr>"+filas+"</table>";
 }
 </script>
 </body>
