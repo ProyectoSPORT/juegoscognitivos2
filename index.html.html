@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Juegos Cognitivos</title>
+<style>
+body{font-family:system-ui,Arial;margin:0;background:#f3f6fb;color:#182033}
+header{background:#182033;color:white;padding:24px;text-align:center}
+main{max-width:900px;margin:auto;padding:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+button,.card{border:0;border-radius:18px;padding:18px;font-size:18px;box-shadow:0 6px 18px #0002;background:white;cursor:pointer}
+button:hover{transform:scale(1.02)}
+#game{margin-top:20px;background:white;border-radius:22px;padding:20px;box-shadow:0 6px 18px #0002}
+.big{font-size:42px;font-weight:800;text-align:center;margin:20px}
+.opt{display:block;width:100%;margin:10px 0}
+input{font-size:20px;padding:12px;border-radius:12px;border:1px solid #ccd;width:calc(100% - 28px)}
+</style>
+</head>
+<body>
+<header><h1>Juegos Cognitivos</h1><p>Escoge un juego para entrenar memoria, atención, lógica y cálculo.</p></header>
+<main>
+<div class="grid">
+<button onclick="memoria()">🧠 Memoria</button>
+<button onclick="atencion()">🎯 Atención</button>
+<button onclick="logica()">🧩 Lógica</button>
+<button onclick="calculo()">🔢 Cálculo mental</button>
+</div>
+<section id="game"><h2>Elige un juego para comenzar</h2></section>
+</main>
+<script>
+let puntos=0, ronda=0, sec="";
+function g(x){document.getElementById("game").innerHTML=x}
+function menu(t){g("<h2>"+t+"</h2><p>Puntos: "+puntos+" | Ronda: "+ronda+"</p>")}
+function memoria(){
+puntos=0;ronda=0;sec="";
+sigMem();
+}
+function sigMem(){
+ronda++; sec += Math.floor(Math.random()*9)+1;
+menu("Memoria"); g(document.getElementById("game").innerHTML+"<p>Mira la secuencia:</p><div class='big'>"+sec+"</div>");
+setTimeout(()=>g("<h2>Memoria</h2><p>Escribe la secuencia que viste:</p><input id='r'><button class='opt' onclick='revMem()'>Responder</button>"),1300+sec.length*250);
+}
+function revMem(){
+let r=document.getElementById("r").value.trim();
+if(r==sec){puntos++; sigMem()} else g("<h2>Fin</h2><p>Tu puntaje fue "+puntos+".</p><button onclick='memoria()'>Jugar otra vez</button>");
+}
+function atencion(){
+puntos=0;ronda=0;sigAte();
+}
+function sigAte(){
+ronda++;
+let colores=["rojo","azul","verde","amarillo"], css=["red","blue","green","gold"];
+let palabra=colores[Math.floor(Math.random()*4)], correcto=Math.floor(Math.random()*4);
+g("<h2>Atención</h2><p>Haz clic en el COLOR de la palabra, no en lo que dice.</p><p>Puntos: "+puntos+"</p><div class='big' style='color:"+css[correcto]+"'>"+palabra.toUpperCase()+"</div>"+colores.map((c,i)=>"<button class='opt' onclick='revAte("+i+","+correcto+")'>"+c+"</button>").join(""));
+}
+function revAte(i,c){
+if(i==c){puntos++;sigAte()} else g("<h2>Fin</h2><p>Tu puntaje fue "+puntos+".</p><button onclick='atencion()'>Jugar otra vez</button>");
+}
+function logica(){
+puntos=0;ronda=0;sigLog();
+}
+function sigLog(){
+ronda++;
+let a=Math.floor(Math.random()*5)+2,d=Math.floor(Math.random()*6)+2;
+let serie=[a,a+d,a+2*d,a+3*d], resp=a+4*d;
+let opciones=[resp,resp+d,resp-d,resp+2].sort(()=>Math.random()-.5);
+g("<h2>Lógica</h2><p>Completa la serie.</p><p>Puntos: "+puntos+"</p><div class='big'>"+serie.join(", ")+", ?</div>"+opciones.map(o=>"<button class='opt' onclick='revLog("+o+","+resp+")'>"+o+"</button>").join(""));
+}
+function revLog(o,r){
+if(o==r){puntos++;sigLog()} else g("<h2>Fin</h2><p>Tu puntaje fue "+puntos+".</p><button onclick='logica()'>Jugar otra vez</button>");
+}
+function calculo(){
+puntos=0;ronda=0;sigCal();
+}
+function sigCal(){
+ronda++;
+let a=Math.floor(Math.random()*20)+1,b=Math.floor(Math.random()*20)+1,op=Math.random()<.5?"+":"-", resp=op=="+"?a+b:a-b;
+g("<h2>Cálculo mental</h2><p>Resuelve rápido.</p><p>Puntos: "+puntos+"</p><div class='big'>"+a+" "+op+" "+b+" = ?</div><input id='r' type='number'><button class='opt' onclick='revCal("+resp+")'>Responder</button>");
+}
+function revCal(r){
+let v=Number(document.getElementById("r").value);
+if(v==r){puntos++;sigCal()} else g("<h2>Fin</h2><p>Tu puntaje fue "+puntos+".</p><button onclick='calculo()'>Jugar otra vez</button>");
+}
+</script>
+</body>
+</html>
